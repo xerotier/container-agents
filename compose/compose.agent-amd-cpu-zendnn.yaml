@@ -1,0 +1,89 @@
+# SPDX-License-Identifier: MIT
+# Xerotier Agent - CPU Inference Stack (AMD ZenDNN)
+#
+# Deploys a XIM CPU node for inference without GPU acceleration.
+# ZenTorch optimization for AMD EPYC CPUs is available as an opt-in image tag.
+# KV cache lives in host RAM and is managed directly by vLLM; no external
+# cache sidecar is required.
+#
+# IMAGE OPTIONS:
+#   AMD ZenTorch optimized:
+#     DOCKER_REGISTRY=ghcr.io/cloudnull/xerotier VERSION=latest
+#     XEROTIER_CPU_IMAGE=xerotier-xim-amd
+#     -> ghcr.io/cloudnull/xerotier-public/xerotier-xim-amd-cpu-zendnn:latest
+#
+# QUICK START:
+#   1. Get a join key from your Xerotier dashboard:
+#      Dashboard -> Infrastructure -> Agents -> Generate Join Key
+#
+#   2. Set your join key:
+#      export XEROTIER_AGENT_JOIN_KEY=xjk_your_key_here
+#
+#   3. Create host directories with correct permissions:
+#      sudo mkdir -p /data/xerotier/models /data/xerotier/config
+#      sudo chown -R 5152:5152 /data/xerotier
+#
+#   4. Start the agent:
+#      docker compose -f docker-compose.agent-amd-cpu-zendnn.yaml up -d
+#
+# ENROLLMENT WORKFLOW:
+#   - On first start, the agent enrolls using your join key
+#   - Enrollment state is persisted to /data/xerotier/config
+#   - On subsequent restarts, the agent reconnects automatically
+#   - You can remove XEROTIER_AGENT_JOIN_KEY after successful enrollment
+#
+# ENVIRONMENT VARIABLES:
+#   XEROTIER_AGENT_JOIN_KEY              [REQUIRED] Join key from Xerotier dashboard (first run only)
+#   XEROTIER_CPU_IMAGE                   Container image name (default: xerotier-xim-amd-cpu-zendnn)
+#   XEROTIER_AGENT_MAX_CONCURRENT        Optional ceiling for concurrent requests (auto-configured when not set)
+#   XEROTIER_AGENT_LOG_LEVEL             Logging level: trace, debug, info, warning, error (default: info)
+#   XEROTIER_AGENT_MODEL_CACHE_MAX_SIZE_GB Local model cache size in GB (default: 100)
+#   SHM_SIZE                             Shared memory size (default: 90g)
+#
+# CPU TUNING (auto-computed by the agent; override via XEROTIER_AGENT_VLLM_ENV if needed):
+#   VLLM_CPU_OMP_THREADS_BIND            CPU thread binding range (auto: 0-{nproc-1})
+#   VLLM_CPU_NUM_OF_RESERVED_CPU         Reserved CPUs for system (auto: 1)
+#   VLLM_CPU_KVCACHE_SPACE               KV cache memory in GB (auto: totalRAM - model - overhead)
+#   OMP_NUM_THREADS                       OpenMP threads (auto: physical core count)
+#   OMP_PROC_BIND                         Pin threads to cores (auto: TRUE)
+#   OMP_WAIT_POLICY                       Thread wait strategy (auto: PASSIVE)
+#
+# KERNEL SOCKET BUFFER TUNING (optional):
+#   The agent sets ZeroMQ socket buffers to 4 MiB for streaming throughput.
+#   Linux defaults net.core.wmem_max and net.core.rmem_max to 212992 bytes,
+#   which silently caps the requested buffer size. The agent will attempt to
+#   raise these limits on startup (requires privileged mode or CAP_SYS_ADMIN).
+#
+#   If the container is not privileged, set these on the host before starting:
+#     sudo sysctl -w net.core.wmem_max=4194304
+#     sudo sysctl -w net.core.rmem_max=4194304
+#
+#   To persist across reboots, add to /etc/sysctl.d/99-xerotier.conf:
+#     net.core.wmem_max = 4194304
+#     net.core.rmem_max = 4194304
+
+services:
+  agent:
+    image: ${DOCKER_REGISTRY:-ghcr.io/cloudnull/xerotier}-public/xim-vllm-zendnn:${VERSION:-latest}
+    container_name: xim-vllm-zendnn
+    network_mode: host
+    ipc: host
+    privileged: true
+    devices:
+      - /dev/mem:/dev/mem
+    cap_add:
+      - SYS_PTRACE
+      - CAP_SYS_ADMIN
+    shm_size: ${SHM_SIZE:-90g}
+    # No command - entrypoint handles enrollment + run automatically
+    volumes:
+      # Persistent model cache
+      - /data/xerotier/models:/var/lib/inference/.cache/xerotier/models
+      # Persistent enrollment state
+      - /data/xerotier/config:/var/lib/inference/.config/xerotier
+    environment:
+      # Agent Enrollment [REQUIRED for first run]
+      XEROTIER_AGENT_JOIN_KEY: ${XEROTIER_AGENT_JOIN_KEY:-}
+      # Agent Configuration
+      XEROTIER_AGENT_LOG_LEVEL: ${XEROTIER_AGENT_LOG_LEVEL:-info}
+    restart: unless-stopped
