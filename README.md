@@ -40,3 +40,9 @@ sudo podman logs xim-vllm-rocm -f
 * The second command ensures that any existing containers are stopped and removed.
 * The third command starts the new containers in detached mode.
 * The last command allows you to view the logs of the running container in real-time.
+
+## MacOS Support
+
+Review the [MacOS README](macos/README.md) for instructions on how to set up and run
+Xerotier XIM on MacOS. This guide provides specific steps and requirements for running
+the platform on MacOS, ensuring a smooth experience for users of this operating system.
