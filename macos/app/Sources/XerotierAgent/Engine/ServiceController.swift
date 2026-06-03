@@ -37,7 +37,20 @@ enum ServiceController {
         put("XEROTIER_AGENT_MAX_CONCURRENT", settings.maxConcurrent)
         put("XEROTIER_AGENT_LOG_LEVEL", settings.logLevel)
         put("XEROTIER_AGENT_METRICS_PORT", settings.metricsPort)
-        put("XEROTIER_AGENT_VLLM_ARGS", settings.vllmArgs)
+
+        // Compose the extra vLLM args, folding in the tuning the user chose so it
+        // overrides the agent's auto-detected defaults. The entrypoint splits
+        // this on spaces into individual --vllm-arg= values.
+        var vllmArgs = settings.vllmArgs.trimmingCharacters(in: .whitespaces)
+        func appendArg(_ flag: String, _ value: String) {
+            let v = value.trimmingCharacters(in: .whitespaces)
+            guard !v.isEmpty else { return }
+            if !vllmArgs.isEmpty { vllmArgs += " " }
+            vllmArgs += "\(flag) \(v)"
+        }
+        appendArg("--gpu-memory-utilization", settings.gpuMemoryUtilization)
+        appendArg("--max-num-seqs", settings.maxNumSeqs)
+        put("XEROTIER_AGENT_VLLM_ARGS", vllmArgs)
         put("XEROTIER_AGENT_VLLM_ENV", settings.vllmEnv)
         if settings.allowInsecure { env["XEROTIER_AGENT_ALLOW_INSECURE"] = "1" }
         if settings.disableMetrics { env["XEROTIER_AGENT_DISABLE_METRICS_SERVER"] = "1" }

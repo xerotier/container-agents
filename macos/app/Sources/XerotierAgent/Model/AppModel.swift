@@ -61,6 +61,9 @@ final class AppModel {
         accelerator = Accelerator.detect()
         preflightChecks = await Preflight.run()
         await refreshState()
+        // Already set up? Open the Dashboard rather than the (now irrelevant)
+        // Setup pane, so the user sees live status immediately on launch.
+        if installState == .installed { selection = .dashboard }
     }
 
     func runPreflight() async {

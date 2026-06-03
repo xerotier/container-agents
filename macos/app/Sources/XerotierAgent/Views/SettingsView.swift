@@ -32,6 +32,18 @@ struct SettingsView: View {
                 Toggle("Allow insecure transport", isOn: $model.settings.allowInsecure)
             }
 
+            Section("GPU & vLLM tuning") {
+                TextField("Memory utilization", text: $model.settings.gpuMemoryUtilization,
+                          prompt: Text("0.90"))
+                Text("Fraction (0–1) of the \(model.acceleratorName) budget (\(model.vramBudget)) vLLM may use, passed as --gpu-memory-utilization. Leave blank to use the agent's default.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                TextField("Max sequences", text: $model.settings.maxNumSeqs,
+                          prompt: Text("256"))
+                Text("Max concurrent sequences vLLM batches (--max-num-seqs). Lower it to maximize context length per request. Leave blank to use the agent's default.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             Section("Metrics") {
                 TextField("Metrics port", text: $model.settings.metricsPort)
                     .disabled(model.settings.disableMetrics)

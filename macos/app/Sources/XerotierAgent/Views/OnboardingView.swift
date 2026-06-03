@@ -18,8 +18,9 @@ struct OnboardingView: View {
                 case .installing:
                     stepsCard
                 case .installed:
+                    // Setup is complete — the install pipeline is no longer
+                    // relevant (and an all-unchecked list reads as "broken").
                     successCard
-                    stepsCard
                 }
             }
             .padding(24)

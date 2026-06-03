@@ -73,14 +73,32 @@ struct LogsView: View {
                         .font(.caption.monospaced())
                         .id(line.id)
                     }
+                    // Stable bottom anchor so we can always scroll to the end,
+                    // even before a freshly-appended row is laid out.
+                    Color.clear.frame(height: 1).id(Self.bottomID)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
             }
+            .defaultScrollAnchor(.bottom)
             .onChange(of: model.logs.count) {
-                guard autoScroll, let last = filtered.last else { return }
-                withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                guard autoScroll else { return }
+                // Defer a tick so the new row exists before we scroll to it.
+                DispatchQueue.main.async {
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        proxy.scrollTo(Self.bottomID, anchor: .bottom)
+                    }
+                }
+            }
+            .onChange(of: autoScroll) {
+                guard autoScroll else { return }
+                DispatchQueue.main.async { proxy.scrollTo(Self.bottomID, anchor: .bottom) }
+            }
+            .onAppear {
+                DispatchQueue.main.async { proxy.scrollTo(Self.bottomID, anchor: .bottom) }
             }
         }
     }
+
+    private static let bottomID = "logs.bottom"
 }

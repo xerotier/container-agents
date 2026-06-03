@@ -149,6 +149,12 @@ struct AgentSettings {
     var allowInsecure: Bool = false
     var metricsPort: String = "9090"
     var disableMetrics: Bool = false
+    /// Fraction (0–1) of the Metal unified-memory budget vLLM may use. Empty =
+    /// leave it to the agent's default. Passed through as --gpu-memory-utilization.
+    var gpuMemoryUtilization: String = ""
+    /// Max concurrent sequences vLLM batches. Lower it to free KV-cache memory
+    /// for longer context per request. Empty = agent default. --max-num-seqs.
+    var maxNumSeqs: String = ""
     var vllmArgs: String = ""
     var vllmEnv: String = ""
 
