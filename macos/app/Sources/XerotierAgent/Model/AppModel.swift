@@ -160,6 +160,32 @@ final class AppModel {
         await restartService()
     }
 
+    /// Re-bootstrap the installed agent with the current join key: stop, clear
+    /// enrollment state, rewrite the plist, and start (which re-enrolls).
+    func reEnroll() async {
+        guard installState == .installed else { return }
+        guard !settings.joinKey.trimmingCharacters(in: .whitespaces).isEmpty else {
+            appendLog("Enter a join key before re-enrolling.", stream: .err)
+            return
+        }
+        serviceState = .stopping
+        tailer.stop()
+        appendLog("Re-enrolling: stopping agent and clearing enrollment state…")
+        await ServiceController.stop(emit: emit)
+        ServiceController.clearEnrollment()
+        isEnrolled = false
+        do { try ServiceController.writePlist(settings: settings) }
+        catch { appendLog("Failed to write plist: \(error.localizedDescription)", stream: .err) }
+
+        serviceState = .starting
+        let ok = await ServiceController.start(emit: emit)
+        if !ok { appendLog("Failed to start service.", stream: .err) }
+        serviceState = await ServiceController.status()
+        isEnrolled = ServiceController.isEnrolled()
+        if serviceState == .running { tailer.start(emit: emit) }
+        appendLog("Re-enroll complete. Service: \(serviceState.label).")
+    }
+
     func uninstall(purge: Bool = false) async {
         tailer.stop()
         await ServiceController.uninstall(purge: purge, emit: emit)

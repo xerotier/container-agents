@@ -29,6 +29,20 @@ extension LogStream {
         case .err: return .orange
         }
     }
+
+    var displayName: String { self == .err ? "Errors" : "Info" }
+    var shortTag: String { self == .err ? "ERR" : "INFO" }
+
+    /// Classify a raw log line by apparent severity. The agent and vLLM
+    /// interleave levels across stdout/stderr (most logging goes to stderr
+    /// regardless of level), so we key off the line content rather than the
+    /// file descriptor it arrived on.
+    static func classify(_ text: String) -> LogStream {
+        let t = text.lowercased()
+        let markers = ["error", "critical", "fatal", "panic", "traceback",
+                       "exception", "  err ", "[err", "err]"]
+        return markers.contains(where: t.contains) ? .err : .out
+    }
 }
 
 /// A rounded, padded surface used for grouping content.

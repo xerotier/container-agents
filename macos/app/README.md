@@ -77,8 +77,8 @@ Build a distributable `.app` and DMG from `packaging/`:
 
 # Signed + notarized (for distribution):
 CODESIGN_IDENTITY="Developer ID Application: … (TEAMID)" \
-  VERSION=0.1.0 ./packaging/build-app.sh
-NOTARY_PROFILE=xerotier-notary VERSION=0.1.0 ./packaging/make-dmg.sh
+  VERSION=0.0.0 ./packaging/build-app.sh
+NOTARY_PROFILE=xerotier-notary VERSION=0.0.0 ./packaging/make-dmg.sh
 ```
 
 - `build-app.sh` builds the release binary, assembles the bundle from

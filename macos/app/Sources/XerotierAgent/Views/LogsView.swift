@@ -31,9 +31,9 @@ struct LogsView: View {
 
     private var toolbar: some View {
         HStack(spacing: 12) {
-            Picker("Stream", selection: $filter) {
+            Picker("Level", selection: $filter) {
                 Text("All").tag(LogStream?.none)
-                ForEach(LogStream.allCases) { Text($0.rawValue).tag(LogStream?.some($0)) }
+                ForEach(LogStream.allCases) { Text($0.displayName).tag(LogStream?.some($0)) }
             }
             .pickerStyle(.segmented)
             .fixedSize()
@@ -62,9 +62,9 @@ struct LogsView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Text(line.timestamp, format: Self.timeFormat)
                                 .foregroundStyle(.tertiary)
-                            Text(line.stream == .err ? "ERR" : "OUT")
+                            Text(line.stream.shortTag)
                                 .foregroundStyle(line.stream.tint)
-                                .frame(width: 30, alignment: .leading)
+                                .frame(width: 36, alignment: .leading)
                             Text(line.text)
                                 .foregroundStyle(line.stream == .err ? .primary : .secondary)
                                 .textSelection(.enabled)

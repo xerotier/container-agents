@@ -71,9 +71,34 @@ enum ServiceController {
         return code == 0
     }
 
+    /// Stop the agent and forcibly reap everything it spawned. A graceful
+    /// `bootout` tells the agent to shut down, but vLLM/MLX worker processes can
+    /// outlive it; this escalates to ensure nothing is left holding the GPU.
     static func stop(emit: @escaping LogEmit) async {
+        // Remove the job from launchd first so KeepAlive can't relaunch anything
+        // we're about to kill.
         await Shell.run("/bin/launchctl", ["bootout", Paths.serviceTarget], emit: emit)
         await Shell.run("/bin/launchctl", ["disable", Paths.serviceTarget], emit: { _, _ in })
+
+        emit("Force-stopping any lingering agent / vLLM processes…", .out)
+        await reap(signal: "TERM")
+        try? await Task.sleep(for: .seconds(2))
+        await reap(signal: "KILL")
+    }
+
+    /// Signal lingering processes: the agent binary by absolute path, and
+    /// anything launched from the vLLM venv (the wrapper interpreter plus every
+    /// vllm/MLX subprocess, which all carry the venv path on their command line).
+    private static func reap(signal: String) async {
+        for pattern in [Paths.agentBin.path, Paths.venv.path] {
+            await Shell.run("/usr/bin/pkill", ["-\(signal)", "-f", pattern], emit: { _, _ in })
+        }
+    }
+
+    /// Delete the local enrollment state so the next start re-enrolls (used to
+    /// re-bootstrap with a new join key).
+    static func clearEnrollment() {
+        try? FileManager.default.removeItem(at: Paths.enrollmentState)
     }
 
     static func uninstall(purge: Bool, emit: @escaping LogEmit) async {

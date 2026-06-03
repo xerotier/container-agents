@@ -9,8 +9,8 @@ final class LogTailer {
 
     func start(emit: @escaping LogEmit) {
         stop()
-        tail(Paths.outLog, stream: .out, emit: emit)
-        tail(Paths.errLog, stream: .err, emit: emit)
+        tail(Paths.outLog, emit: emit)
+        tail(Paths.errLog, emit: emit)
     }
 
     func stop() {
@@ -18,14 +18,17 @@ final class LogTailer {
         procs.removeAll()
     }
 
-    private func tail(_ file: URL, stream: LogStream, emit: @escaping LogEmit) {
+    private func tail(_ file: URL, emit: @escaping LogEmit) {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/tail")
         p.arguments = ["-n", "200", "-F", file.path]
         let pipe = Pipe()
         p.standardOutput = pipe
         p.standardError = Pipe()
-        Shell.attachReader(pipe, stream: stream, emit: emit)
+        // Classify by severity, not by which log file the line came from.
+        Shell.attachReader(pipe, stream: .out) { line, _ in
+            emit(line, LogStream.classify(line))
+        }
         do { try p.run(); procs.append(p) } catch { /* file dir may not exist yet */ }
     }
 }

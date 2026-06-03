@@ -3,6 +3,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
+    @State private var showReenroll = false
 
     var body: some View {
         @Bindable var model = model
@@ -11,6 +12,16 @@ struct SettingsView: View {
                 TextField("Join key", text: $model.settings.joinKey)
                     .font(.body.monospaced())
                 Toggle("Allow prerelease", isOn: $model.settings.preRelease)
+                Button("Re-enroll with this join key") { showReenroll = true }
+                    .disabled(model.installState != .installed
+                              || model.settings.joinKey.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .confirmationDialog("Re-enroll the agent?",
+                                        isPresented: $showReenroll, titleVisibility: .visible) {
+                        Button("Re-enroll", role: .destructive) { Task { await model.reEnroll() } }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("Stops the agent, clears its current enrollment, and re-bootstraps with the join key above — the agent rejoins the router as a fresh enrollment. Use this to switch join keys without a full reinstall.")
+                    }
             }
 
             Section("Runtime") {
