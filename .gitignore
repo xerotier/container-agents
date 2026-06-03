@@ -1,1 +1,6 @@
 .mcp.json
+**/.build
+
+macos/app/dist/
+.DS_Store
+.vscode/

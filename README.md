@@ -43,6 +43,6 @@ sudo podman logs xim-vllm-rocm -f
 
 ## MacOS Support
 
-Review the [MacOS README](macos/README.md) for instructions on how to set up and run
-Xerotier XIM on MacOS. This guide provides specific steps and requirements for running
-the platform on MacOS, ensuring a smooth experience for users of this operating system.
+On Apple Silicon, Xerotier XIM runs as a native macOS application that installs,
+configures, and controls the agent with Metal-accelerated vLLM. See the
+[MacOS README](macos/README.md) for requirements and setup.

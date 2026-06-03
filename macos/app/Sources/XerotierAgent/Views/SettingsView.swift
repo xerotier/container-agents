@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: MIT
+import SwiftUI
+
+struct SettingsView: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        @Bindable var model = model
+        Form {
+            Section("Enrollment") {
+                TextField("Join key", text: $model.settings.joinKey)
+                    .font(.body.monospaced())
+                Toggle("Allow prerelease", isOn: $model.settings.preRelease)
+            }
+
+            Section("Runtime") {
+                TextField("Max concurrent jobs", text: $model.settings.maxConcurrent)
+                Picker("Log level", selection: $model.settings.logLevel) {
+                    ForEach(AgentSettings.logLevels, id: \.self) { Text($0).tag($0) }
+                }
+                Toggle("Allow insecure transport", isOn: $model.settings.allowInsecure)
+            }
+
+            Section("Metrics") {
+                TextField("Metrics port", text: $model.settings.metricsPort)
+                    .disabled(model.settings.disableMetrics)
+                Toggle("Disable metrics server", isOn: $model.settings.disableMetrics)
+            }
+
+            Section("vLLM") {
+                TextField("Extra vLLM args", text: $model.settings.vllmArgs,
+                          prompt: Text("--max-model-len 8192"))
+                TextField("Extra vLLM env", text: $model.settings.vllmEnv,
+                          prompt: Text("KEY=VALUE KEY2=VALUE2"))
+                Text("Passed through the xerotier-vllm wrapper to vLLM.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section {
+                HStack {
+                    Text("Changes apply on the next service restart.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Apply & Restart") {
+                        Task { await model.applyAndRestart() }
+                    }
+                    .disabled(model.installState != .installed)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .navigationTitle("Settings")
+    }
+}
