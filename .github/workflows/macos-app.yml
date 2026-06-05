@@ -32,6 +32,9 @@ jobs:
       #   NOTARY_ISSUER_ID, NOTARY_KEY_ID, NOTARY_KEY_BASE64
       # then import the cert into a temp keychain and run notarytool store-credentials.
 
+      - name: Install agent runtime libraries (bundled into the app)
+        run: brew install zeromq zstd
+
       - name: Build app
         working-directory: macos/app
         env:
